@@ -44,6 +44,31 @@ final class Util {
         }
     }
 
+    public static function resolveQuerySpanName(array $attributes): string {
+        $name = $attributes['db.operation.name'] ?? 'SQL';
+        if (isset($attributes['db.collection.name'])) {
+            $name .= ' ';
+            $name .= $attributes['db.collection.name'];
+        }
+
+        return $name;
+    }
+
+    public static function resolveConnectionSpanName(array $attributes, string $prefix): string {
+        if (isset($attributes['server.address'])) {
+            $name = $attributes['server.address'];
+
+            if (isset($attributes['server.port'])) {
+                $name .= ':';
+                $name .= $attributes['server.port'];
+            }
+
+            return sprintf('%s %s', $prefix, $name);
+        }
+
+        return $prefix;
+    }
+
     public static function prefixOperationName(array $attributes, string $prefix): array {
         $attributes['db.operation.name'] = isset($attributes['db.operation.name'])
             ? sprintf('%s %s', $prefix, $attributes['db.operation.name'])

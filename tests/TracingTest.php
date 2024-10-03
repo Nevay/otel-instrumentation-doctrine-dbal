@@ -60,7 +60,7 @@ final class TracingTest extends TestCase {
                 "parentSpanId": "b7ad6b7169203331",
                 "spanId": "ac0a7f8c2faac497",
                 "flags": 259,
-                "name": "CONNECT sqlite",
+                "name": "CONNECT",
                 "kind": 3,
                 "attributes": [
                   { "key": "db.system", "value": { "stringValue": "sqlite" }},
@@ -302,7 +302,7 @@ final class TracingTest extends TestCase {
                 "parentSpanId": "b7ad6b7169203331",
                 "spanId": "ac0a7f8c2faac497",
                 "flags": 259,
-                "name": "START TRANSACTION sqlite",
+                "name": "START TRANSACTION",
                 "kind": 3,
                 "attributes": [
                   { "key": "db.system", "value": { "stringValue": "sqlite" }},
@@ -333,7 +333,7 @@ final class TracingTest extends TestCase {
                 "parentSpanId": "b7ad6b7169203331",
                 "spanId": "43b34e9afb52a2db",
                 "flags": 259,
-                "name": "COMMIT sqlite",
+                "name": "COMMIT",
                 "kind": 3,
                 "attributes": [
                   { "key": "db.system", "value": { "stringValue": "sqlite" }},

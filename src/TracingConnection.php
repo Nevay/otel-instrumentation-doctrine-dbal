@@ -5,10 +5,8 @@ namespace Nevay\OTelInstrumentation\DoctrineDbal;
 use Doctrine\DBAL\Driver\Connection;
 use Doctrine\DBAL\Driver\Result;
 use Doctrine\DBAL\Driver\Statement;
-use OpenTelemetry\API\Trace\SpanBuilderInterface;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\TracerInterface;
-use function sprintf;
 
 final class TracingConnection implements Connection {
 
@@ -24,7 +22,7 @@ final class TracingConnection implements Connection {
 
         $statement = Util::trace(
             $this->tracer
-                ->spanBuilder(self::resolveSpanName($prepareAttributes))
+                ->spanBuilder(Util::resolveQuerySpanName($prepareAttributes))
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
                 ->setAttributes($prepareAttributes)
@@ -38,7 +36,7 @@ final class TracingConnection implements Connection {
         return new TracingStatement(
             $statement,
             $this->tracer
-                ->spanBuilder(self::resolveSpanName($attributes))
+                ->spanBuilder(Util::resolveQuerySpanName(($attributes)))
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
                 ->setAttributes($attributes),
@@ -46,8 +44,14 @@ final class TracingConnection implements Connection {
     }
 
     public function query(string $sql): Result {
+        $attributes = Util::attributes($sql);
+
         return Util::trace(
-            $this->querySpanBuilder($sql)
+            $this->tracer
+                ->spanBuilder(Util::resolveQuerySpanName($attributes))
+                ->setSpanKind(SpanKind::KIND_CLIENT)
+                ->setAttributes($this->connectionAttributes)
+                ->setAttributes($attributes)
                 ->setAttribute('code.function', __FUNCTION__)
                 ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
@@ -61,8 +65,14 @@ final class TracingConnection implements Connection {
     }
 
     public function exec(string $sql): int|string {
+        $attributes = Util::attributes($sql);
+
         return Util::trace(
-            $this->querySpanBuilder($sql)
+            $this->tracer
+                ->spanBuilder(Util::resolveQuerySpanName($attributes))
+                ->setSpanKind(SpanKind::KIND_CLIENT)
+                ->setAttributes($this->connectionAttributes)
+                ->setAttributes($attributes)
                 ->setAttribute('code.function', __FUNCTION__)
                 ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
@@ -73,7 +83,10 @@ final class TracingConnection implements Connection {
 
     public function lastInsertId(): int|string {
         return Util::trace(
-            $this->nonQuerySpanBuilder('LAST_INSERT_ID')
+            $this->tracer
+                ->spanBuilder(Util::resolveConnectionSpanName($this->connectionAttributes, 'LAST_INSERT_ID'))
+                ->setSpanKind(SpanKind::KIND_CLIENT)
+                ->setAttributes($this->connectionAttributes)
                 ->setAttribute('code.function', __FUNCTION__)
                 ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
@@ -83,7 +96,10 @@ final class TracingConnection implements Connection {
 
     public function beginTransaction(): void {
         Util::trace(
-            $this->nonQuerySpanBuilder('START TRANSACTION')
+            $this->tracer
+                ->spanBuilder(Util::resolveConnectionSpanName($this->connectionAttributes, 'START TRANSACTION'))
+                ->setSpanKind(SpanKind::KIND_CLIENT)
+                ->setAttributes($this->connectionAttributes)
                 ->setAttribute('code.function', __FUNCTION__)
                 ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
@@ -93,7 +109,10 @@ final class TracingConnection implements Connection {
 
     public function commit(): void {
         Util::trace(
-            $this->nonQuerySpanBuilder('COMMIT')
+            $this->tracer
+                ->spanBuilder(Util::resolveConnectionSpanName($this->connectionAttributes, 'COMMIT'))
+                ->setSpanKind(SpanKind::KIND_CLIENT)
+                ->setAttributes($this->connectionAttributes)
                 ->setAttribute('code.function', __FUNCTION__)
                 ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
@@ -103,7 +122,10 @@ final class TracingConnection implements Connection {
 
     public function rollBack(): void {
         Util::trace(
-            $this->nonQuerySpanBuilder('ROLLBACK')
+            $this->tracer
+                ->spanBuilder(Util::resolveConnectionSpanName($this->connectionAttributes, 'ROLLBACK'))
+                ->setSpanKind(SpanKind::KIND_CLIENT)
+                ->setAttributes($this->connectionAttributes)
                 ->setAttribute('code.function', __FUNCTION__)
                 ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
@@ -117,32 +139,5 @@ final class TracingConnection implements Connection {
 
     public function getServerVersion(): string {
         return $this->connection->getServerVersion();
-    }
-
-    private function resolveSpanName(array $attributes): string {
-        $name = $attributes['db.operation.name'] ?? 'SQL';
-        if (isset($attributes['db.collection.name'])) {
-            $name .= ' ';
-            $name .= $attributes['db.collection.name'];
-        }
-
-        return $name;
-    }
-
-    private function querySpanBuilder(string $sql): SpanBuilderInterface {
-        $attributes = Util::attributes($sql);
-
-        return $this->tracer
-            ->spanBuilder(self::resolveSpanName($attributes))
-            ->setSpanKind(SpanKind::KIND_CLIENT)
-            ->setAttributes($this->connectionAttributes)
-            ->setAttributes($attributes);
-    }
-
-    private function nonQuerySpanBuilder(string $prefix): SpanBuilderInterface {
-        return $this->tracer
-            ->spanBuilder(sprintf('%s %s', $prefix, $this->connectionAttributes['db.system']))
-            ->setSpanKind(SpanKind::KIND_CLIENT)
-            ->setAttributes($this->connectionAttributes);
     }
 }

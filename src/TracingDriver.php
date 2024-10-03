@@ -20,7 +20,6 @@ use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerInterface;
 use SensitiveParameter;
 use Throwable;
-use function sprintf;
 
 final class TracingDriver implements Driver {
 
@@ -54,7 +53,7 @@ final class TracingDriver implements Driver {
         }
 
         $span = $this->tracer
-            ->spanBuilder(sprintf('CONNECT %s', self::resolveSpanName($attributes)))
+            ->spanBuilder(Util::resolveConnectionSpanName($attributes, 'CONNECT'))
             ->setSpanKind(SpanKind::KIND_CLIENT)
             ->setAttributes($attributes)
             ->setAttribute('code.function', __FUNCTION__)
@@ -65,9 +64,7 @@ final class TracingDriver implements Driver {
             $connection = $this->driver->connect($params);
 
             if ($serverVersion === null) {
-                $attributes['db.system'] = self::resolveDbSystem($this->driver->getDatabasePlatform($connection));
-                $span->updateName(sprintf('CONNECT %s', self::resolveSpanName($attributes)));
-                $span->setAttribute('db.system', $attributes['db.system']);
+                $span->setAttribute('db.system', $attributes['db.system'] = self::resolveDbSystem($this->driver->getDatabasePlatform($connection)));
             }
         } catch (Throwable $e) {
             if ($e instanceof Exception) {
@@ -97,21 +94,6 @@ final class TracingDriver implements Driver {
 
     public function getExceptionConverter(): ExceptionConverter {
         return $this->driver->getExceptionConverter();
-    }
-
-    private function resolveSpanName(array $attributes): string {
-        if (isset($attributes['server.address'])) {
-            $name = $attributes['server.address'];
-
-            if (isset($attributes['server.port'])) {
-                $name .= ':';
-                $name .= $attributes['server.port'];
-            }
-
-            return $name;
-        }
-
-        return $attributes['db.system'];
     }
 
     private static function resolveDbSystem(AbstractPlatform $platform): string {
