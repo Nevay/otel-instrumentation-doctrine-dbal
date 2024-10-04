@@ -2,7 +2,6 @@
 namespace Nevay\OTelInstrumentation\DoctrineDbal;
 
 use Doctrine\DBAL\Configuration;
-use Doctrine\DBAL\Driver\Middleware;
 use Doctrine\DBAL\DriverManager;
 use OpenTelemetry\API\Configuration\ConfigProperties;
 use OpenTelemetry\API\Instrumentation\AutoInstrumentation\Context;
@@ -23,7 +22,7 @@ final class DoctrineInstrumentation implements Instrumentation {
                 $config = $params[1] ?? new Configuration();
 
                 $middlewares = $config->getMiddlewares();
-                if (!array_filter($middlewares, static fn(Middleware $middleware) => $middleware instanceof TracingMiddleware)) {
+                if (!array_filter($middlewares, $middleware->equals(...))) {
                     array_unshift($middlewares, $middleware);
                     $config->setMiddlewares($middlewares);
                 }
