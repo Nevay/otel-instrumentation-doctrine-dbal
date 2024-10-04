@@ -20,6 +20,9 @@ final class DoctrineInstrumentation implements Instrumentation {
             'getConnection',
             static function(string $class, array $params) use ($middleware): array {
                 $config = $params[1] ?? new Configuration();
+                if (!$config instanceof Configuration) {
+                    return [];
+                }
 
                 $middlewares = $config->getMiddlewares();
                 if (!array_filter($middlewares, $middleware->equals(...))) {
