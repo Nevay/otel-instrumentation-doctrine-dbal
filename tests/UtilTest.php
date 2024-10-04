@@ -23,4 +23,36 @@ final class UtilTest extends TestCase {
             'update user set first_name = ?, last_name = ? where id = ?',
         ];
     }
+
+    #[DataProvider('operationProvider')]
+    public function testOperationName(string $sql, ?string $operation): void {
+        $this->assertSame($operation, Util::attributes($sql)['db.operation.name']);
+    }
+
+    public static function operationProvider(): iterable {
+        yield [
+            "select * from user",
+            'SELECT',
+        ];
+        yield [
+            "START TRANSACTION",
+            'START TRANSACTION',
+        ];
+        yield [
+            "BEGIN",
+            'START TRANSACTION',
+        ];
+        yield [
+            "COMMIT",
+            'COMMIT',
+        ];
+        yield [
+            "ROLLBACK",
+            'ROLLBACK',
+        ];
+        yield [
+            "START TRANSACTION; INSERT INTO user VALUES ('abc'); COMMIT",
+            "INSERT",
+        ];
+    }
 }

@@ -7,6 +7,8 @@ use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\StatusCode;
 use PhpMyAdmin\SqlParser\Context;
 use PhpMyAdmin\SqlParser\Parser;
+use PhpMyAdmin\SqlParser\Statement;
+use PhpMyAdmin\SqlParser\Statements\TransactionStatement;
 use PhpMyAdmin\SqlParser\Token;
 use PhpMyAdmin\SqlParser\TokensList;
 use PhpMyAdmin\SqlParser\TokenType;
@@ -55,18 +57,18 @@ final class Util {
     }
 
     public static function resolveConnectionSpanName(array $attributes, string $prefix): string {
+        $name = $prefix;
         if (isset($attributes['server.address'])) {
-            $name = $attributes['server.address'];
+            $name .= ' ';
+            $name .= $attributes['server.address'];
 
             if (isset($attributes['server.port'])) {
                 $name .= ':';
                 $name .= $attributes['server.port'];
             }
-
-            return sprintf('%s %s', $prefix, $name);
         }
 
-        return $prefix;
+        return $name;
     }
 
     public static function prefixOperationName(array $attributes, string $prefix): array {
@@ -77,33 +79,56 @@ final class Util {
         return $attributes;
     }
 
-    public static function attributes(string $sql): array {
+    public static function attributes(string $sql, bool $includeQueryText = true): array {
         $mode = Context::getMode();
         Context::setMode(Context::SQL_MODE_ANSI | Context::SQL_MODE_NO_ENCLOSING_QUOTES);
         try {
             $parser = new Parser($sql);
 
             $attributes = [];
-            foreach ($parser->statements as $i => $statement) {
-                $tables = Query::getTables($statement);
-                $flags = Query::getFlags($statement);
+            self::statementAttributes($parser->statements, $attributes);
 
-                $attributes[$i]['db.collection.name'] = $tables[0] ?? null;
-                $attributes[$i]['db.operation.name'] = $flags->queryType->value;
+            if ($attributes) {
+                $attributes = array_intersect_assoc(...$attributes);
             }
-
-            $attributes = array_intersect_assoc(...$attributes);
 
             if (count($parser->statements) > 1) {
                 $attributes = self::prefixOperationName($attributes, 'BATCH');
                 $attributes['db.operation.batch.size'] = count($parser->statements);
             }
-
-            $attributes['db.query.text'] = self::sanitize($sql, $parser->list);
+            if ($includeQueryText) {
+                $attributes['db.query.text'] = self::sanitize($sql, $parser->list);
+            }
 
             return $attributes;
         } finally {
             Context::setMode($mode);
+        }
+    }
+
+    /**
+     * @param list<Statement> $statements
+     */
+    private static function statementAttributes(array $statements, array &$attributes, int &$i = -1): void {
+        foreach ($statements as $statement) {
+            if ($statement instanceof TransactionStatement && $statement->statements) {
+                self::statementAttributes($statement->statements, $attributes, $i);
+                continue;
+            }
+
+            $tables = Query::getTables($statement);
+            $flags = Query::getFlags($statement);
+
+            $i++;
+            $attributes[$i]['db.collection.name'] = $tables[0] ?? null;
+            $attributes[$i]['db.operation.name'] = $flags->queryType?->value;
+
+            if ($statement instanceof TransactionStatement && $statement->type === TransactionStatement::TYPE_BEGIN) {
+                $attributes[$i]['db.operation.name'] = 'START TRANSACTION';
+            }
+            if ($statement instanceof TransactionStatement && $statement->type === TransactionStatement::TYPE_END) {
+                $attributes[$i]['db.operation.name'] = $statement->options->build();
+            }
         }
     }
 

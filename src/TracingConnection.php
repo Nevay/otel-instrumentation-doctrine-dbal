@@ -82,11 +82,15 @@ final class TracingConnection implements Connection {
     }
 
     public function lastInsertId(): int|string {
+        static $attributes;
+        $attributes ??= Util::attributes('SELECT LAST_INSERT_ID()', false);
+
         return Util::trace(
             $this->tracer
-                ->spanBuilder(Util::resolveConnectionSpanName($this->connectionAttributes, 'LAST_INSERT_ID'))
+                ->spanBuilder(Util::resolveQuerySpanName($attributes))
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
+                ->setAttributes($attributes)
                 ->setAttribute('code.function', __FUNCTION__)
                 ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
@@ -95,11 +99,15 @@ final class TracingConnection implements Connection {
     }
 
     public function beginTransaction(): void {
+        static $attributes;
+        $attributes ??= Util::attributes('BEGIN TRANSACTION', false);
+
         Util::trace(
             $this->tracer
-                ->spanBuilder(Util::resolveConnectionSpanName($this->connectionAttributes, 'START TRANSACTION'))
+                ->spanBuilder(Util::resolveQuerySpanName($attributes))
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
+                ->setAttributes($attributes)
                 ->setAttribute('code.function', __FUNCTION__)
                 ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
@@ -108,11 +116,15 @@ final class TracingConnection implements Connection {
     }
 
     public function commit(): void {
+        static $attributes;
+        $attributes ??= Util::attributes('COMMIT', false);
+
         Util::trace(
             $this->tracer
-                ->spanBuilder(Util::resolveConnectionSpanName($this->connectionAttributes, 'COMMIT'))
+                ->spanBuilder(Util::resolveQuerySpanName($attributes))
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
+                ->setAttributes($attributes)
                 ->setAttribute('code.function', __FUNCTION__)
                 ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
@@ -121,11 +133,15 @@ final class TracingConnection implements Connection {
     }
 
     public function rollBack(): void {
+        static $attributes;
+        $attributes ??= Util::attributes('ROLLBACK', false);
+
         Util::trace(
             $this->tracer
-                ->spanBuilder(Util::resolveConnectionSpanName($this->connectionAttributes, 'ROLLBACK'))
+                ->spanBuilder(Util::resolveQuerySpanName($attributes))
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
+                ->setAttributes($attributes)
                 ->setAttribute('code.function', __FUNCTION__)
                 ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
