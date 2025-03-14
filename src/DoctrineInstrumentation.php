@@ -7,7 +7,6 @@ use OpenTelemetry\API\Configuration\ConfigProperties;
 use OpenTelemetry\API\Instrumentation\AutoInstrumentation\Context;
 use OpenTelemetry\API\Instrumentation\AutoInstrumentation\HookManagerInterface;
 use OpenTelemetry\API\Instrumentation\AutoInstrumentation\Instrumentation;
-use function array_filter;
 use function array_unshift;
 
 final class DoctrineInstrumentation implements Instrumentation {
@@ -25,10 +24,14 @@ final class DoctrineInstrumentation implements Instrumentation {
                 }
 
                 $middlewares = $config->getMiddlewares();
-                if (!array_filter($middlewares, $middleware->equals(...))) {
-                    array_unshift($middlewares, $middleware);
-                    $config->setMiddlewares($middlewares);
+                foreach ($middlewares as $middleware) {
+                    if ($middleware instanceof TracingMiddleware) {
+                        return [];
+                    }
                 }
+
+                array_unshift($middlewares, $middleware);
+                $config->setMiddlewares($middlewares);
 
                 return [1 => $config];
             }
