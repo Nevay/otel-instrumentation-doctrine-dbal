@@ -22,6 +22,10 @@ final class UtilTest extends TestCase {
             "update user set first_name = 'Jane', last_name = 'Doe' where id = 1",
             'update user set first_name = ?, last_name = ? where id = ?',
         ];
+        yield [
+            "select * from user where name = 'äöü' and user.active = 1",
+            "select * from user where name = ? and user.active = ?"
+        ];
     }
 
     #[DataProvider('operationProvider')]

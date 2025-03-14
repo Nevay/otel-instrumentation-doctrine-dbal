@@ -2,6 +2,7 @@
     "name": "tbachert/otel-instrumentation-doctrine-dbal",
     "require": {
         "php": "^8.2",
+        "ext-mbstring": "*",
         "composer-runtime-api": "^2.0",
         "doctrine/dbal": "^4.0",
         "open-telemetry/api": "^1.1",

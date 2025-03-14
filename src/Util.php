@@ -20,7 +20,6 @@ use PhpMyAdmin\SqlParser\Statements\TransactionStatement;
 use PhpMyAdmin\SqlParser\Statements\TruncateStatement;
 use PhpMyAdmin\SqlParser\Statements\UpdateStatement;
 use PhpMyAdmin\SqlParser\Statements\WithStatement;
-use PhpMyAdmin\SqlParser\Token;
 use PhpMyAdmin\SqlParser\TokensList;
 use PhpMyAdmin\SqlParser\TokenType;
 use PhpMyAdmin\SqlParser\Utils\Query;
@@ -30,9 +29,8 @@ use function array_unique;
 use function assert;
 use function count;
 use function implode;
+use function mb_substr;
 use function sprintf;
-use function strlen;
-use function substr_replace;
 
 /**
  * @internal
@@ -157,18 +155,25 @@ final class Util {
     }
 
     private static function sanitize(string $sql, TokensList $list): string {
-        for ($i = $list->count, $prev = new Token('', TokenType::Delimiter); $token = $list->tokens[--$i] ?? null; $prev = $token) {
-            match ($token->type) {
-                TokenType::Bool,
-                TokenType::Number,
-                TokenType::String,
-                    => $sql = substr_replace($sql, '?', $token->position, ($prev->position ?? strlen($sql)) - $token->position),
-                default,
-                    => null,
-            };
+        $offset = null;
+        $sanitized = '';
+        foreach ($list->tokens as $token) {
+            $offset ??= $token->position;
+            if ($token->type === TokenType::Bool || $token->type === TokenType::Number || $token->type === TokenType::String) {
+                $sanitized .= mb_substr($sql, $offset, $token->position - $offset, 'UTF-8');
+                $sanitized .= '?';
+                $offset = null;
+            }
         }
 
-        return $sql;
+        if ($sanitized === '') {
+            return $sql;
+        }
+        if ($offset !== null) {
+            $sanitized .= mb_substr($sql, $offset, null, 'UTF-8');
+        }
+
+        return $sanitized;
     }
 
     /**
