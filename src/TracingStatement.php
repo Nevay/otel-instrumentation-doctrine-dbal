@@ -35,8 +35,6 @@ final class TracingStatement implements Statement {
     public function execute(): Result {
         return Util::trace(
             (clone $this->spanBuilder)
-                ->setAttribute('code.function', __FUNCTION__)
-                ->setAttribute('code.namespace', $this->statement::class)
                 ->startSpan(),
             $this->statement->execute(...),
         );

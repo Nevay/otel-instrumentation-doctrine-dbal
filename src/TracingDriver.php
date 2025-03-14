@@ -55,11 +55,10 @@ final class TracingDriver implements Driver {
             ->spanBuilder(Util::resolveConnectionSpanName($attributes, 'CONNECT'))
             ->setSpanKind(SpanKind::KIND_CLIENT)
             ->setAttributes($attributes)
-            ->setAttribute('code.function', __FUNCTION__)
-            ->setAttribute('code.namespace', $this->driver::class)
             ->startSpan();
         $scope = $span->activate();
         try {
+            Util::reflectCodeAttributes($span, $this->driver->connect(...));
             $connection = $this->driver->connect($params);
 
             if ($serverVersion === null) {

@@ -23,6 +23,7 @@ use PhpMyAdmin\SqlParser\Statements\WithStatement;
 use PhpMyAdmin\SqlParser\TokensList;
 use PhpMyAdmin\SqlParser\TokenType;
 use PhpMyAdmin\SqlParser\Utils\Query;
+use ReflectionFunction;
 use Throwable;
 use function array_splice;
 use function array_unique;
@@ -39,8 +40,8 @@ final class Util {
 
     public static function trace(SpanInterface $span, Closure $closure, mixed ...$arguments): mixed {
         $scope = $span->activate();
-
         try {
+            Util::reflectCodeAttributes($span, $closure);
             return $closure(...$arguments);
         } catch (Throwable $e) {
             if ($e instanceof Exception) {
@@ -48,13 +49,37 @@ final class Util {
             }
 
             $span->setStatus(StatusCode::STATUS_ERROR, $e->getMessage());
-            $span->recordException($e, ['exception.escaped' => true]);
+            $span->recordException($e);
             $span->setAttribute('error.type', $e::class);
 
             throw $e;
         } finally {
             $scope->detach();
             $span->end();
+        }
+    }
+
+    /**
+     * @see https://opentelemetry.io/docs/specs/semconv/general/attributes/#source-code-attributes
+     */
+    public static function reflectCodeAttributes(SpanInterface $span, Closure $closure): void {
+        if (!$span->isRecording()) {
+            return;
+        }
+
+        $reflection = new ReflectionFunction($closure);
+
+        if (!$reflection->isAnonymous()) {
+            $span->setAttribute('code.function.name', $reflection->getClosureCalledClass()
+                ? $reflection->getClosureCalledClass()->getMethod($reflection->name)->getDeclaringClass()->name . '::' . $reflection->name
+                : $reflection->name
+            );
+        }
+        if ($reflection->getFileName() !== false) {
+            $span->setAttribute('code.file.path', $reflection->getFileName());
+        }
+        if ($reflection->getStartLine() !== false) {
+            $span->setAttribute('code.line.number', $reflection->getStartLine());
         }
     }
 

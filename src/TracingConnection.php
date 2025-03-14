@@ -26,8 +26,6 @@ final class TracingConnection implements Connection {
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
                 ->setAttributes($attributes)
-                ->setAttribute('code.function', __FUNCTION__)
-                ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
             $this->connection->prepare(...),
             $sql,
@@ -53,8 +51,6 @@ final class TracingConnection implements Connection {
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
                 ->setAttributes($attributes)
-                ->setAttribute('code.function', __FUNCTION__)
-                ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
             $this->connection->query(...),
             $sql,
@@ -74,8 +70,6 @@ final class TracingConnection implements Connection {
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
                 ->setAttributes($attributes)
-                ->setAttribute('code.function', __FUNCTION__)
-                ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
             $this->connection->exec(...),
             $sql,
@@ -91,8 +85,6 @@ final class TracingConnection implements Connection {
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
                 ->setAttributes($attributes)
-                ->setAttribute('code.function', __FUNCTION__)
-                ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
             $this->connection->lastInsertId(...),
         );
@@ -109,8 +101,6 @@ final class TracingConnection implements Connection {
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
                 ->setAttributes($attributes)
-                ->setAttribute('code.function', __FUNCTION__)
-                ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
             $this->connection->beginTransaction(...),
         );
@@ -127,8 +117,6 @@ final class TracingConnection implements Connection {
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
                 ->setAttributes($attributes)
-                ->setAttribute('code.function', __FUNCTION__)
-                ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
             $this->connection->commit(...),
         );
@@ -145,8 +133,6 @@ final class TracingConnection implements Connection {
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
                 ->setAttributes($attributes)
-                ->setAttribute('code.function', __FUNCTION__)
-                ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
             $this->connection->rollBack(...),
         );

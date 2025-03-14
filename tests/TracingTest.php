@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\TestCase;
 use Random\Engine\Mt19937;
 use Random\Randomizer;
+use function in_array;
 use function json_decode;
 use function json_encode;
 
@@ -64,14 +65,13 @@ final class TracingTest extends TestCase {
                 "kind": 3,
                 "attributes": [
                   { "key": "db.system.name", "value": { "stringValue": "sqlite" }},
-                  { "key": "code.function", "value": { "stringValue": "connect" }},
-                  { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Driver" }}
+                  { "key": "code.function.name", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Driver::connect" }}
                 ],
                 "status":{}
               }
             ]
             JSON,
-            json_encode(json_decode($buffer->buffer())->resourceSpans[0]->scopeSpans[0]->spans ?? []),
+            json_encode($this->dropCodeAttributes(json_decode($buffer->buffer())->resourceSpans[0]->scopeSpans[0]->spans ?? [])),
         );
     }
 
@@ -123,8 +123,7 @@ final class TracingTest extends TestCase {
                   { "key": "db.operation.name", "value": { "stringValue": "SELECT" }},
                   { "key": "db.query.summary", "value": { "stringValue": "SELECT user" }},
                   { "key": "db.query.text", "value": { "stringValue": "select * from user where first_name = ? and last_name = ?" }},
-                  { "key": "code.function", "value": { "stringValue": "prepare" }},
-                  { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection" }}
+                  { "key": "code.function.name", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection::prepare" }}
                 ],
                 "status":{}
               },
@@ -141,14 +140,13 @@ final class TracingTest extends TestCase {
                   { "key": "db.operation.name", "value": { "stringValue": "SELECT" }},
                   { "key": "db.query.summary", "value": { "stringValue": "SELECT user" }},
                   { "key": "db.query.text", "value": { "stringValue": "select * from user where first_name = ? and last_name = ?" }},
-                  { "key": "code.function", "value": { "stringValue": "execute" }},
-                  { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Statement" }}
+                  { "key": "code.function.name", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Statement::execute" }}
                 ],
                 "status":{}
               }
             ]
             JSON,
-            json_encode(json_decode($buffer->buffer())->resourceSpans[0]->scopeSpans[0]->spans ?? []),
+            json_encode($this->dropCodeAttributes(json_decode($buffer->buffer())->resourceSpans[0]->scopeSpans[0]->spans ?? [])),
         );
     }
 
@@ -197,14 +195,13 @@ final class TracingTest extends TestCase {
                   { "key": "db.operation.name", "value": { "stringValue": "SELECT" }},
                   { "key": "db.query.summary", "value": { "stringValue": "SELECT user" }},
                   { "key": "db.query.text", "value": { "stringValue": "select * from user where first_name = ? and last_name = ?" }},
-                  { "key": "code.function", "value": { "stringValue": "query" }},
-                  { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection" }}
+                  { "key": "code.function.name", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection::query" }}
                 ],
                 "status":{}
               }
             ]
             JSON,
-            json_encode(json_decode($buffer->buffer())->resourceSpans[0]->scopeSpans[0]->spans ?? []),
+            json_encode($this->dropCodeAttributes(json_decode($buffer->buffer())->resourceSpans[0]->scopeSpans[0]->spans ?? [])),
         );
     }
 
@@ -252,8 +249,7 @@ final class TracingTest extends TestCase {
                   { "key": "db.operation.name", "value": { "stringValue": "SELECT" }},
                   { "key": "db.query.summary", "value": { "stringValue": "SELECT user" }},
                   { "key": "db.query.text", "value": { "stringValue": "select * from user where first_name = ? and last_name = ?" }},
-                  { "key": "code.function", "value": { "stringValue": "prepare" }},
-                  { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection" }}
+                  { "key": "code.function.name", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection::prepare" }}
                 ],
                 "status":{}
               },
@@ -272,8 +268,7 @@ final class TracingTest extends TestCase {
                   { "key": "db.query.text", "value": { "stringValue": "select * from user where first_name = ? and last_name = ?" }},
                   { "key": "db.operation.parameter.1", "value":  { "stringValue": "Jane" }},
                   { "key": "db.operation.parameter.2", "value":  { "stringValue": "Doe" }},
-                  { "key": "code.function", "value": { "stringValue": "execute" }},
-                  { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Statement" }}
+                  { "key": "code.function.name", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Statement::execute" }}
                 ],
                 "status":{}
               },
@@ -290,14 +285,13 @@ final class TracingTest extends TestCase {
                   { "key": "db.operation.name", "value": { "stringValue": "SELECT" }},
                   { "key": "db.query.summary", "value": { "stringValue": "SELECT user" }},
                   { "key": "db.query.text", "value": { "stringValue": "select * from user where first_name = 'Jane' and last_name = 'Doe'" }},
-                  { "key": "code.function", "value": { "stringValue": "query" }},
-                  { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection" }}
+                  { "key": "code.function.name", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection::query" }}
                 ],
                 "status":{}
               }
             ]
             JSON,
-            json_encode(json_decode($buffer->buffer())->resourceSpans[0]->scopeSpans[0]->spans ?? []),
+            json_encode($this->dropCodeAttributes(json_decode($buffer->buffer())->resourceSpans[0]->scopeSpans[0]->spans ?? [])),
         );
     }
 
@@ -348,14 +342,13 @@ final class TracingTest extends TestCase {
                   { "key": "db.operation.batch.size", "value": { "intValue": "2" }},
                   { "key": "db.query.summary", "value": { "stringValue": "INSERT user" }},
                   { "key": "db.query.text", "value": { "stringValue": "insert into user values (?, ?, ?);\\ninsert into user values (?, ?, ?);" }},
-                  { "key": "code.function", "value": { "stringValue": "query" }},
-                  { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection" }}
+                  { "key": "code.function.name", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection::query" }}
                 ],
                 "status":{}
               }
             ]
             JSON,
-            json_encode(json_decode($buffer->buffer())->resourceSpans[0]->scopeSpans[0]->spans ?? []),
+            json_encode($this->dropCodeAttributes(json_decode($buffer->buffer())->resourceSpans[0]->scopeSpans[0]->spans ?? [])),
         );
     }
 
@@ -404,8 +397,7 @@ final class TracingTest extends TestCase {
                 "attributes": [
                   { "key": "db.system.name", "value": { "stringValue": "sqlite" }},
                   { "key": "db.operation.name", "value": { "stringValue": "START TRANSACTION" }},
-                  { "key": "code.function", "value": { "stringValue": "beginTransaction" }},
-                  { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection" }}
+                  { "key": "code.function.name", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection::beginTransaction" }}
                 ],
                 "status":{}
               },
@@ -422,8 +414,7 @@ final class TracingTest extends TestCase {
                   { "key": "db.operation.name", "value": { "stringValue": "SELECT" }},
                   { "key": "db.query.summary", "value": { "stringValue": "SELECT user" }},
                   { "key": "db.query.text", "value": { "stringValue": "select * from user where first_name = ? and last_name = ?" }},
-                  { "key": "code.function", "value": { "stringValue": "query" }},
-                  { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection" }}
+                  { "key": "code.function.name", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection::query" }}
                 ],
                 "status":{}
               },
@@ -437,14 +428,25 @@ final class TracingTest extends TestCase {
                 "attributes": [
                   { "key": "db.system.name", "value": { "stringValue": "sqlite" }},
                   { "key": "db.operation.name", "value": { "stringValue": "COMMIT" }},
-                  { "key": "code.function", "value": { "stringValue": "commit" }},
-                  { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection" }}
+                  { "key": "code.function.name", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection::commit" }}
                 ],
                 "status":{}
               }
             ]
             JSON,
-            json_encode(json_decode($buffer->buffer())->resourceSpans[0]->scopeSpans[0]->spans ?? []),
+            json_encode($this->dropCodeAttributes(json_decode($buffer->buffer())->resourceSpans[0]->scopeSpans[0]->spans ?? [])),
         );
+    }
+
+    private function dropCodeAttributes(array $spans): array {
+        foreach ($spans as $span) {
+            foreach ($span->attributes as $a => $attribute) {
+                if (in_array($attribute->key, ['code.file.path', 'code.line.number', 'code.column.number'])) {
+                    unset($span->attributes[$a]);
+                }
+            }
+        }
+
+        return $spans;
     }
 }
