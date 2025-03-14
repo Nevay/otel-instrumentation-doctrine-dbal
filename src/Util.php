@@ -88,7 +88,7 @@ final class Util {
         return $name;
     }
 
-    public static function attributes(string $sql, bool $includeQueryText = true): array {
+    public static function attributes(string $sql, bool $sanitizeQueryText = true): array {
         $mode = Context::getMode();
         Context::setMode(Context::SQL_MODE_ANSI | Context::SQL_MODE_NO_ENCLOSING_QUOTES);
         try {
@@ -144,9 +144,10 @@ final class Util {
             if (count(array_unique($summaries)) === 1) {
                 $attributes['db.query.summary'] = $summaries[0];
             }
-            if ($includeQueryText) {
-                $attributes['db.query.text'] = self::sanitize($sql, $parser->list);
-            }
+
+            $attributes['db.query.text'] = $sanitizeQueryText
+                ? self::sanitize($sql, $parser->list)
+                : $sql;
 
             return $attributes;
         } finally {

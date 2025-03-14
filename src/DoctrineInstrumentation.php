@@ -12,7 +12,8 @@ use function array_unshift;
 final class DoctrineInstrumentation implements Instrumentation {
 
     public function register(HookManagerInterface $hookManager, ConfigProperties $configuration, Context $context): void {
-        $middleware = new TracingMiddleware($context->tracerProvider);
+        $config = $configuration->get(DoctrineConfiguration::class) ?? new DoctrineConfiguration();
+        $middleware = new TracingMiddleware($context->tracerProvider, $config);
 
         $hookManager->hook(
             DriverManager::class,

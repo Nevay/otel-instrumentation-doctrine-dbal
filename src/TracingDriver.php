@@ -36,6 +36,7 @@ final class TracingDriver implements Driver {
     public function __construct(
         private readonly Driver $driver,
         private readonly TracerInterface $tracer,
+        private readonly DoctrineConfiguration $config,
     ) {}
 
     public function connect(#[SensitiveParameter] array $params): Connection {
@@ -82,6 +83,7 @@ final class TracingDriver implements Driver {
         return new TracingConnection(
             $connection,
             $this->tracer,
+            $this->config,
             $attributes,
         );
     }

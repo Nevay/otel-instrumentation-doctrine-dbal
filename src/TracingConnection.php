@@ -13,11 +13,12 @@ final class TracingConnection implements Connection {
     public function __construct(
         private readonly Connection $connection,
         private readonly TracerInterface $tracer,
+        private readonly DoctrineConfiguration $config,
         private readonly array $connectionAttributes,
     ) {}
 
     public function prepare(string $sql): Statement {
-        $attributes = Util::attributes($sql);
+        $attributes = Util::attributes($sql, !$this->config->captureParameters);
 
         $statement = Util::trace(
             $this->tracer
@@ -39,11 +40,12 @@ final class TracingConnection implements Connection {
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
                 ->setAttributes($attributes),
+            $this->config,
         );
     }
 
     public function query(string $sql): Result {
-        $attributes = Util::attributes($sql);
+        $attributes = Util::attributes($sql, !$this->config->captureParameters);
 
         return Util::trace(
             $this->tracer
@@ -64,7 +66,7 @@ final class TracingConnection implements Connection {
     }
 
     public function exec(string $sql): int|string {
-        $attributes = Util::attributes($sql);
+        $attributes = Util::attributes($sql, !$this->config->captureParameters);
 
         return Util::trace(
             $this->tracer
@@ -81,8 +83,7 @@ final class TracingConnection implements Connection {
     }
 
     public function lastInsertId(): int|string {
-        static $attributes;
-        $attributes ??= Util::attributes('SELECT LAST_INSERT_ID()', false);
+        static $attributes = [];
 
         return Util::trace(
             $this->tracer
@@ -98,8 +99,9 @@ final class TracingConnection implements Connection {
     }
 
     public function beginTransaction(): void {
-        static $attributes;
-        $attributes ??= Util::attributes('START TRANSACTION', false);
+        static $attributes = [
+            'db.operation.name' => 'START TRANSACTION',
+        ];
 
         Util::trace(
             $this->tracer
@@ -115,8 +117,9 @@ final class TracingConnection implements Connection {
     }
 
     public function commit(): void {
-        static $attributes;
-        $attributes ??= Util::attributes('COMMIT', false);
+        static $attributes = [
+            'db.operation.name' => 'COMMIT',
+        ];
 
         Util::trace(
             $this->tracer
@@ -132,8 +135,9 @@ final class TracingConnection implements Connection {
     }
 
     public function rollBack(): void {
-        static $attributes;
-        $attributes ??= Util::attributes('ROLLBACK', false);
+        static $attributes = [
+            'db.operation.name' => 'ROLLBACK',
+        ];
 
         Util::trace(
             $this->tracer

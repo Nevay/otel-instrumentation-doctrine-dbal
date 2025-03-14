@@ -209,6 +209,99 @@ final class TracingTest extends TestCase {
     }
 
     #[Depends('testConnect')]
+    public function testCaptureParameters(): void {
+        $tracerProvider = (new TracerProviderBuilder())
+            ->setClock(new TestClock())
+            ->setIdGenerator(new RandomIdGenerator(new Randomizer(new Mt19937(0))))
+            ->addSpanProcessor(new BatchSpanProcessor(new OtlpStreamSpanExporter($buffer = new WritableBuffer())))
+            ->build();
+        $connection = DriverManager::getConnection(
+            ['driver' => 'sqlite3', 'memory' => true],
+            (new Configuration())->setMiddlewares([new TracingMiddleware($tracerProvider, new DoctrineConfiguration(captureParameters: true))]),
+        );
+
+        $tracerProvider->updateConfigurator(static fn(TracerConfig $config) => $config->disabled = true);
+        $connection->executeStatement(<<<SQL
+            create table user (
+                id int primary key,
+                first_name varchar not null,
+                last_name varchar not null
+            );
+            SQL);
+        $tracerProvider->updateConfigurator(static fn(TracerConfig $config) => $config->disabled = false);
+
+        $connection->executeQuery("select * from user where first_name = ? and last_name = ?", ['Jane', 'Doe']);
+        $connection->executeQuery("select * from user where first_name = 'Jane' and last_name = 'Doe'");
+
+        $tracerProvider->shutdown();
+        $buffer->close();
+
+        $this->assertJsonStringEqualsJsonString(
+            <<<JSON
+            [
+              {
+                "traceId": "0af7651916cd43dd8448eb211c80319c",
+                "parentSpanId": "b7ad6b7169203331",
+                "spanId": "ac0a7f8c2faac497",
+                "flags": 259,
+                "name": "PREPARE SELECT user",
+                "kind": 3,
+                "attributes": [
+                  { "key": "db.system.name", "value": { "stringValue": "sqlite" }},
+                  { "key": "db.collection.name", "value": { "stringValue": "user" }},
+                  { "key": "db.operation.name", "value": { "stringValue": "SELECT" }},
+                  { "key": "db.query.summary", "value": { "stringValue": "SELECT user" }},
+                  { "key": "db.query.text", "value": { "stringValue": "select * from user where first_name = ? and last_name = ?" }},
+                  { "key": "code.function", "value": { "stringValue": "prepare" }},
+                  { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection" }}
+                ],
+                "status":{}
+              },
+              {
+                "traceId": "0af7651916cd43dd8448eb211c80319c",
+                "parentSpanId": "b7ad6b7169203331",
+                "spanId": "75a616b7c0cc21d8",
+                "flags": 259,
+                "name": "SELECT user",
+                "kind": 3,
+                "attributes": [
+                  { "key": "db.system.name", "value": { "stringValue": "sqlite" }},
+                  { "key": "db.collection.name", "value": { "stringValue": "user" }},
+                  { "key": "db.operation.name", "value": { "stringValue": "SELECT" }},
+                  { "key": "db.query.summary", "value": { "stringValue": "SELECT user" }},
+                  { "key": "db.query.text", "value": { "stringValue": "select * from user where first_name = ? and last_name = ?" }},
+                  { "key": "db.operation.parameter.1", "value":  { "stringValue": "Jane" }},
+                  { "key": "db.operation.parameter.2", "value":  { "stringValue": "Doe" }},
+                  { "key": "code.function", "value": { "stringValue": "execute" }},
+                  { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Statement" }}
+                ],
+                "status":{}
+              },
+              {
+                "traceId": "0af7651916cd43dd8448eb211c80319c",
+                "parentSpanId": "b7ad6b7169203331",
+                "spanId": "43b34e9afb52a2db",
+                "flags": 259,
+                "name": "SELECT user",
+                "kind": 3,
+                "attributes": [
+                  { "key": "db.system.name", "value": { "stringValue": "sqlite" }},
+                  { "key": "db.collection.name", "value": { "stringValue": "user" }},
+                  { "key": "db.operation.name", "value": { "stringValue": "SELECT" }},
+                  { "key": "db.query.summary", "value": { "stringValue": "SELECT user" }},
+                  { "key": "db.query.text", "value": { "stringValue": "select * from user where first_name = 'Jane' and last_name = 'Doe'" }},
+                  { "key": "code.function", "value": { "stringValue": "query" }},
+                  { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection" }}
+                ],
+                "status":{}
+              }
+            ]
+            JSON,
+            json_encode(json_decode($buffer->buffer())->resourceSpans[0]->scopeSpans[0]->spans ?? []),
+        );
+    }
+
+    #[Depends('testConnect')]
     public function testBatch(): void {
         $tracerProvider = (new TracerProviderBuilder())
             ->setClock(new TestClock())
