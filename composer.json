@@ -37,6 +37,9 @@
         "spi": {
             "OpenTelemetry\\API\\Instrumentation\\AutoInstrumentation\\Instrumentation": [
                 "Nevay\\OTelInstrumentation\\DoctrineDbal\\DoctrineInstrumentation"
+            ],
+            "Nevay\\OTelSDK\\Configuration\\ComponentProvider": [
+                "Nevay\\OTelInstrumentation\\DoctrineDbal\\DoctrineInstrumentationProvider"
             ]
         }
     }
