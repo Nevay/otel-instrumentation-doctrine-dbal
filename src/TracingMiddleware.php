@@ -17,7 +17,7 @@ final class TracingMiddleware implements Middleware {
         $this->tracer = $tracerProvider->getTracer(
             'com.tobiasbachert.instrumentation.doctrine-dbal',
             InstalledVersions::getPrettyVersion('tbachert/otel-instrumentation-doctrine-dbal'),
-            'https://opentelemetry.io/schemas/1.27.0',
+            'https://opentelemetry.io/schemas/1.31.0',
         );
     }
 

@@ -18,14 +18,13 @@ final class TracingConnection implements Connection {
 
     public function prepare(string $sql): Statement {
         $attributes = Util::attributes($sql);
-        $prepareAttributes = Util::prefixOperationName($attributes, 'PREPARE');
 
         $statement = Util::trace(
             $this->tracer
-                ->spanBuilder(Util::resolveQuerySpanName($prepareAttributes))
+                ->spanBuilder(sprintf('PREPARE %s', Util::resolveQuerySpanName($attributes)))
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
-                ->setAttributes($prepareAttributes)
+                ->setAttributes($attributes)
                 ->setAttribute('code.function', __FUNCTION__)
                 ->setAttribute('code.namespace', $this->connection::class)
                 ->startSpan(),
@@ -100,7 +99,7 @@ final class TracingConnection implements Connection {
 
     public function beginTransaction(): void {
         static $attributes;
-        $attributes ??= Util::attributes('BEGIN TRANSACTION', false);
+        $attributes ??= Util::attributes('START TRANSACTION', false);
 
         Util::trace(
             $this->tracer

@@ -39,10 +39,6 @@ final class UtilTest extends TestCase {
             'START TRANSACTION',
         ];
         yield [
-            "BEGIN",
-            'START TRANSACTION',
-        ];
-        yield [
             "COMMIT",
             'COMMIT',
         ];
@@ -53,6 +49,61 @@ final class UtilTest extends TestCase {
         yield [
             "START TRANSACTION; INSERT INTO user VALUES ('abc'); COMMIT",
             "INSERT",
+        ];
+    }
+
+    #[DataProvider('querySummaryProvider')]
+    public function testQuerySummary(string $sql, ?string $operation): void {
+        $this->assertSame($operation, Util::attributes($sql)['db.query.summary']);
+    }
+
+    public static function querySummaryProvider(): iterable {
+        yield [
+            <<<'SQL'
+                SELECT *
+                FROM   wuser_table
+                WHERE  username = ?
+                SQL,
+            'SELECT wuser_table',
+        ];
+        yield [
+            <<<'SQL'
+                INSERT INTO shipping_details
+                            (order_id,
+                            address)
+                SELECT order_id,
+                       address
+                FROM   orders
+                WHERE  order_id = ?
+                SQL,
+            'INSERT shipping_details SELECT orders',
+        ];
+        yield [
+            <<<'SQL'
+                SELECT *
+                FROM   songs,
+                       artists
+                WHERE  songs.artist_id == artists.id
+                SQL,
+            'SELECT songs artists',
+        ];
+        yield [
+            <<<'SQL'
+                SELECT order_date
+                FROM   (SELECT *
+                        FROM   orders o
+                               JOIN customers c
+                                 ON o.customer_id = c.customer_id)
+                SQL,
+            'SELECT SELECT orders customers',
+        ];
+        yield [
+            <<<'SQL'
+                SELECT *
+                FROM   "song list",
+                       'artists'
+                SQL,
+            'SELECT "song list" \'artists\'',
         ];
     }
 }

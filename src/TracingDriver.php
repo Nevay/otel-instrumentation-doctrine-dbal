@@ -24,11 +24,11 @@ use Throwable;
 final class TracingDriver implements Driver {
 
     private const DB_SYSTEMS = [
-        SQLServerPlatform::class => 'mssql',
+        SQLServerPlatform::class => 'microsoft.sql_server',
         MariaDBPlatform::class => 'mariadb',
         MySQLPlatform::class => 'mysql',
-        OraclePlatform::class => 'oracle',
-        DB2Platform::class => 'db2',
+        OraclePlatform::class => 'oracle.db',
+        DB2Platform::class => 'ibm.db2',
         PostgreSQLPlatform::class => 'postgresql',
         SqlitePlatform::class => 'sqlite',
     ];
@@ -40,16 +40,14 @@ final class TracingDriver implements Driver {
 
     public function connect(#[SensitiveParameter] array $params): Connection {
         $attributes = [
-            'db.system' => 'other_sql',
+            'db.system.name' => 'other_sql',
             'db.namespace' => $params['dbname'] ?? null,
             'server.address' => $params['host'] ?? null,
             'server.port' => $params['port'] ?? null,
-            'network.peer.name' => $params['host'] ?? null,
-            'network.peer.port' => $params['port'] ?? null,
         ];
 
         if (($serverVersion = $params['serverVersion'] ?? $params['primary']['serverVersion'] ?? null) !== null) {
-            $attributes['db.system'] = self::resolveDbSystem($this->driver->getDatabasePlatform(new StaticServerVersionProvider($serverVersion)));
+            $attributes['db.system.name'] = self::resolveDbSystem($this->driver->getDatabasePlatform(new StaticServerVersionProvider($serverVersion)));
         }
 
         $span = $this->tracer
@@ -64,7 +62,7 @@ final class TracingDriver implements Driver {
             $connection = $this->driver->connect($params);
 
             if ($serverVersion === null) {
-                $span->setAttribute('db.system', $attributes['db.system'] = self::resolveDbSystem($this->driver->getDatabasePlatform($connection)));
+                $span->setAttribute('db.system.name', $attributes['db.system.name'] = self::resolveDbSystem($this->driver->getDatabasePlatform($connection)));
             }
         } catch (Throwable $e) {
             if ($e instanceof Exception) {

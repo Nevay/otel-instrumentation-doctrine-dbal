@@ -63,7 +63,7 @@ final class TracingTest extends TestCase {
                 "name": "CONNECT",
                 "kind": 3,
                 "attributes": [
-                  { "key": "db.system", "value": { "stringValue": "sqlite" }},
+                  { "key": "db.system.name", "value": { "stringValue": "sqlite" }},
                   { "key": "code.function", "value": { "stringValue": "connect" }},
                   { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Driver" }}
                 ],
@@ -118,9 +118,10 @@ final class TracingTest extends TestCase {
                 "name": "PREPARE SELECT user",
                 "kind": 3,
                 "attributes": [
-                  { "key": "db.system", "value": { "stringValue": "sqlite" }},
+                  { "key": "db.system.name", "value": { "stringValue": "sqlite" }},
                   { "key": "db.collection.name", "value": { "stringValue": "user" }},
-                  { "key": "db.operation.name", "value": { "stringValue": "PREPARE SELECT" }},
+                  { "key": "db.operation.name", "value": { "stringValue": "SELECT" }},
+                  { "key": "db.query.summary", "value": { "stringValue": "SELECT user" }},
                   { "key": "db.query.text", "value": { "stringValue": "select * from user where first_name = ? and last_name = ?" }},
                   { "key": "code.function", "value": { "stringValue": "prepare" }},
                   { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection" }}
@@ -135,9 +136,10 @@ final class TracingTest extends TestCase {
                 "name": "SELECT user",
                 "kind": 3,
                 "attributes": [
-                  { "key": "db.system", "value": { "stringValue": "sqlite" }},
+                  { "key": "db.system.name", "value": { "stringValue": "sqlite" }},
                   { "key": "db.collection.name", "value": { "stringValue": "user" }},
                   { "key": "db.operation.name", "value": { "stringValue": "SELECT" }},
+                  { "key": "db.query.summary", "value": { "stringValue": "SELECT user" }},
                   { "key": "db.query.text", "value": { "stringValue": "select * from user where first_name = ? and last_name = ?" }},
                   { "key": "code.function", "value": { "stringValue": "execute" }},
                   { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Statement" }}
@@ -190,9 +192,10 @@ final class TracingTest extends TestCase {
                 "name": "SELECT user",
                 "kind": 3,
                 "attributes": [
-                  { "key": "db.system", "value": { "stringValue": "sqlite" }},
+                  { "key": "db.system.name", "value": { "stringValue": "sqlite" }},
                   { "key": "db.collection.name", "value": { "stringValue": "user" }},
                   { "key": "db.operation.name", "value": { "stringValue": "SELECT" }},
+                  { "key": "db.query.summary", "value": { "stringValue": "SELECT user" }},
                   { "key": "db.query.text", "value": { "stringValue": "select * from user where first_name = ? and last_name = ?" }},
                   { "key": "code.function", "value": { "stringValue": "query" }},
                   { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection" }}
@@ -243,13 +246,14 @@ final class TracingTest extends TestCase {
                 "parentSpanId": "b7ad6b7169203331",
                 "spanId": "ac0a7f8c2faac497",
                 "flags": 259,
-                "name": "BATCH INSERT user",
+                "name": "INSERT user",
                 "kind": 3,
                 "attributes": [
-                  { "key": "db.system", "value": { "stringValue": "sqlite" }},
+                  { "key": "db.system.name", "value": { "stringValue": "sqlite" }},
                   { "key": "db.collection.name", "value": { "stringValue": "user" }},
                   { "key": "db.operation.name", "value": { "stringValue": "BATCH INSERT" }},
                   { "key": "db.operation.batch.size", "value": { "intValue": "2" }},
+                  { "key": "db.query.summary", "value": { "stringValue": "INSERT user" }},
                   { "key": "db.query.text", "value": { "stringValue": "insert into user values (?, ?, ?);\\ninsert into user values (?, ?, ?);" }},
                   { "key": "code.function", "value": { "stringValue": "query" }},
                   { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection" }}
@@ -305,7 +309,7 @@ final class TracingTest extends TestCase {
                 "name": "START TRANSACTION",
                 "kind": 3,
                 "attributes": [
-                  { "key": "db.system", "value": { "stringValue": "sqlite" }},
+                  { "key": "db.system.name", "value": { "stringValue": "sqlite" }},
                   { "key": "db.operation.name", "value": { "stringValue": "START TRANSACTION" }},
                   { "key": "code.function", "value": { "stringValue": "beginTransaction" }},
                   { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection" }}
@@ -320,9 +324,10 @@ final class TracingTest extends TestCase {
                 "name": "SELECT user",
                 "kind": 3,
                 "attributes": [
-                  { "key": "db.system", "value": { "stringValue": "sqlite" }},
+                  { "key": "db.system.name", "value": { "stringValue": "sqlite" }},
                   { "key": "db.collection.name", "value": { "stringValue": "user" }},
                   { "key": "db.operation.name", "value": { "stringValue": "SELECT" }},
+                  { "key": "db.query.summary", "value": { "stringValue": "SELECT user" }},
                   { "key": "db.query.text", "value": { "stringValue": "select * from user where first_name = ? and last_name = ?" }},
                   { "key": "code.function", "value": { "stringValue": "query" }},
                   { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection" }}
@@ -337,7 +342,7 @@ final class TracingTest extends TestCase {
                 "name": "COMMIT",
                 "kind": 3,
                 "attributes": [
-                  { "key": "db.system", "value": { "stringValue": "sqlite" }},
+                  { "key": "db.system.name", "value": { "stringValue": "sqlite" }},
                   { "key": "db.operation.name", "value": { "stringValue": "COMMIT" }},
                   { "key": "code.function", "value": { "stringValue": "commit" }},
                   { "key": "code.namespace", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection" }}

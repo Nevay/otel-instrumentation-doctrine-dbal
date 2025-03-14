@@ -5,17 +5,31 @@ use Closure;
 use Doctrine\DBAL\Driver\Exception;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\StatusCode;
+use PhpMyAdmin\SqlParser\Components\JoinKeyword;
 use PhpMyAdmin\SqlParser\Context;
 use PhpMyAdmin\SqlParser\Parser;
 use PhpMyAdmin\SqlParser\Statement;
+use PhpMyAdmin\SqlParser\Statements\AlterStatement;
+use PhpMyAdmin\SqlParser\Statements\DeleteStatement;
+use PhpMyAdmin\SqlParser\Statements\DropStatement;
+use PhpMyAdmin\SqlParser\Statements\InsertStatement;
+use PhpMyAdmin\SqlParser\Statements\RenameStatement;
+use PhpMyAdmin\SqlParser\Statements\ReplaceStatement;
+use PhpMyAdmin\SqlParser\Statements\SelectStatement;
 use PhpMyAdmin\SqlParser\Statements\TransactionStatement;
+use PhpMyAdmin\SqlParser\Statements\TruncateStatement;
+use PhpMyAdmin\SqlParser\Statements\UpdateStatement;
+use PhpMyAdmin\SqlParser\Statements\WithStatement;
 use PhpMyAdmin\SqlParser\Token;
 use PhpMyAdmin\SqlParser\TokensList;
 use PhpMyAdmin\SqlParser\TokenType;
 use PhpMyAdmin\SqlParser\Utils\Query;
 use Throwable;
-use function array_intersect_assoc;
+use function array_splice;
+use function array_unique;
+use function assert;
 use function count;
+use function implode;
 use function sprintf;
 use function strlen;
 use function substr_replace;
@@ -47,6 +61,11 @@ final class Util {
     }
 
     public static function resolveQuerySpanName(array $attributes): string {
+        $name = $attributes['db.query.summary'] ?? null;
+        if ($name !== null) {
+            return $name;
+        }
+
         $name = $attributes['db.operation.name'] ?? 'SQL';
         if (isset($attributes['db.collection.name'])) {
             $name .= ' ';
@@ -71,30 +90,61 @@ final class Util {
         return $name;
     }
 
-    public static function prefixOperationName(array $attributes, string $prefix): array {
-        $attributes['db.operation.name'] = isset($attributes['db.operation.name'])
-            ? sprintf('%s %s', $prefix, $attributes['db.operation.name'])
-            : $prefix;
-
-        return $attributes;
-    }
-
     public static function attributes(string $sql, bool $includeQueryText = true): array {
         $mode = Context::getMode();
         Context::setMode(Context::SQL_MODE_ANSI | Context::SQL_MODE_NO_ENCLOSING_QUOTES);
         try {
             $parser = new Parser($sql);
 
-            $attributes = [];
-            self::statementAttributes($parser->statements, $attributes);
+            $operations = [];
+            $collections = [];
+            $summaries = [];
 
-            if ($attributes) {
-                $attributes = array_intersect_assoc(...$attributes);
+            $statements = $parser->statements;
+            for ($i = count($statements); --$i >= 0;) {
+                $s = $statements[$i];
+                if ($s instanceof WithStatement) {
+                    array_splice($statements, $i, 1);
+                }
+                if ($s instanceof TransactionStatement && $s->statements) {
+                    array_splice($statements, $i, 1, $s->statements);
+                }
+                if ($s instanceof TransactionStatement && !$s->statements && $s->end) {
+                    array_splice($statements, $i + 1, 0, $s->end);
+                }
+            }
+            foreach ($statements as $statement) {
+                if ($statement instanceof TransactionStatement) {
+                    $operations[] = $statement->options->build();
+                    $collections[] = null;
+                    continue;
+                }
+
+                $summary = [];
+                $tables = self::summarize($statement, $summary);
+                $flags = Query::getFlags($statement);
+
+                $operations[] = $flags->queryType?->value;
+                $collections[] = $tables[0] ?? null;
+                $summaries[] = implode(' ', $summary) ?: null;
             }
 
-            if (count($parser->statements) > 1) {
-                $attributes = self::prefixOperationName($attributes, 'BATCH');
-                $attributes['db.operation.batch.size'] = count($parser->statements);
+            $attributes = [];
+
+            if (count(array_unique($collections)) === 1) {
+                $attributes['db.collection.name'] = $collections[0];
+            }
+            if (count(array_unique($operations)) === 1) {
+                $attributes['db.operation.name'] = $operations[0];
+            }
+            if (count($statements) > 1) {
+                $attributes['db.operation.name'] = isset($attributes['db.operation.name'])
+                    ? sprintf('BATCH %s', $attributes['db.operation.name'])
+                    : 'BATCH';
+                $attributes['db.operation.batch.size'] = count($statements);
+            }
+            if (count(array_unique($summaries)) === 1) {
+                $attributes['db.query.summary'] = $summaries[0];
             }
             if ($includeQueryText) {
                 $attributes['db.query.text'] = self::sanitize($sql, $parser->list);
@@ -103,32 +153,6 @@ final class Util {
             return $attributes;
         } finally {
             Context::setMode($mode);
-        }
-    }
-
-    /**
-     * @param list<Statement> $statements
-     */
-    private static function statementAttributes(array $statements, array &$attributes, int &$i = -1): void {
-        foreach ($statements as $statement) {
-            if ($statement instanceof TransactionStatement && $statement->statements) {
-                self::statementAttributes($statement->statements, $attributes, $i);
-                continue;
-            }
-
-            $tables = Query::getTables($statement);
-            $flags = Query::getFlags($statement);
-
-            $i++;
-            $attributes[$i]['db.collection.name'] = $tables[0] ?? null;
-            $attributes[$i]['db.operation.name'] = $flags->queryType?->value;
-
-            if ($statement instanceof TransactionStatement && $statement->type === TransactionStatement::TYPE_BEGIN) {
-                $attributes[$i]['db.operation.name'] = 'START TRANSACTION';
-            }
-            if ($statement instanceof TransactionStatement && $statement->type === TransactionStatement::TYPE_END) {
-                $attributes[$i]['db.operation.name'] = $statement->options->build();
-            }
         }
     }
 
@@ -145,5 +169,62 @@ final class Util {
         }
 
         return $sql;
+    }
+
+    /**
+     * @see Query::getTables()
+     */
+    private static function summarize(Statement $statement, array &$summary = []): array {
+        $expressions = [];
+
+        if (($statement instanceof InsertStatement) || ($statement instanceof ReplaceStatement)) {
+            $expressions = [$statement->into->dest];
+        } elseif ($statement instanceof UpdateStatement) {
+            $expressions = $statement->tables;
+        } elseif (($statement instanceof SelectStatement) || ($statement instanceof DeleteStatement)) {
+            $expressions = $statement->from;
+        } elseif (($statement instanceof AlterStatement) || ($statement instanceof TruncateStatement)) {
+            $expressions = [$statement->table];
+        } elseif ($statement instanceof DropStatement) {
+            if (!$statement->options->has('TABLE')) {
+                // No tables are dropped.
+                return [];
+            }
+
+            $expressions = $statement->fields;
+        } elseif ($statement instanceof RenameStatement) {
+            foreach ($statement->renames as $rename) {
+                $expressions[] = $rename->old;
+            }
+        }
+        foreach ($statement->join ?? [] as $join) {
+            if (assert($join instanceof JoinKeyword) && $join->expr) {
+                $expressions[] = $join->expr;
+            }
+        }
+
+        $flags = Query::getFlags($statement);
+        if ($flags->queryType) {
+            $summary[] = $flags->queryType->value;
+        }
+
+        $tables = [];
+        foreach ($expressions as $expr) {
+            if ($expr->table !== null) {
+                $tables[] = $expr->expr;
+                $summary[] = $expr->expr;
+            }
+            if ($expr->subquery !== null) {
+                foreach ((new Parser($expr->expr))->statements as $statement) {
+                    self::summarize($statement, $summary);
+                }
+            }
+        }
+
+        if ($statement instanceof InsertStatement && $statement->select) {
+            self::summarize($statement->select, $summary);
+        }
+
+        return $tables;
     }
 }
