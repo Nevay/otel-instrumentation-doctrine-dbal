@@ -6,7 +6,6 @@ use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\ParameterType;
 use OpenTelemetry\API\Trace\SpanBuilderInterface;
 use function bin2hex;
-use function mb_strimwidth;
 
 final class TracingStatement implements Statement {
 
@@ -34,8 +33,7 @@ final class TracingStatement implements Statement {
 
     public function execute(): Result {
         return Util::trace(
-            (clone $this->spanBuilder)
-                ->startSpan(),
+            $this->spanBuilder->startSpan(),
             $this->statement->execute(...),
         );
     }
