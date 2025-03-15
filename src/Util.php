@@ -44,13 +44,15 @@ final class Util {
             Util::reflectCodeAttributes($span, $closure);
             return $closure(...$arguments);
         } catch (Throwable $e) {
-            if ($e instanceof Exception) {
+            if ($e instanceof Exception && $e->getSQLState() !== null) {
                 $span->setAttribute('db.response.status_code', $e->getSQLState());
+                $span->setAttribute('error.type', $e->getSQLState());
+            } else {
+                $span->setAttribute('error.type', $e::class);
             }
 
             $span->setStatus(StatusCode::STATUS_ERROR, $e->getMessage());
             $span->recordException($e);
-            $span->setAttribute('error.type', $e::class);
 
             throw $e;
         } finally {
