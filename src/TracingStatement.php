@@ -5,7 +5,7 @@ use Doctrine\DBAL\Driver\Result;
 use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\ParameterType;
 use OpenTelemetry\API\Trace\SpanBuilderInterface;
-use function bin2hex;
+use function gettype;
 use function is_int;
 
 final class TracingStatement implements Statement {
@@ -22,14 +22,10 @@ final class TracingStatement implements Statement {
         if ($this->config->captureParameters) {
             $this->spanBuilder->setAttribute(
                 sprintf('db.operation.parameter.%s', is_int($param) ? $param - 1 : $param),
-                match ($type) {
-                    ParameterType::INTEGER,
-                    ParameterType::ASCII,
-                    ParameterType::STRING => (string) $value,
-                    ParameterType::NULL => 'null',
-                    ParameterType::BOOLEAN => $value ? 'true' : 'false',
-                    ParameterType::BINARY => '0x' . bin2hex((string) $value),
-                    ParameterType::LARGE_OBJECT => null,
+                match (gettype($value)) {
+                    'NULL' => 'null',
+                    'boolean' => $value ? 'true' : 'false',
+                    default => (string) $value,
                 },
             );
         }
