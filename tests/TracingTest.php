@@ -396,7 +396,6 @@ final class TracingTest extends TestCase {
                 "kind": 3,
                 "attributes": [
                   { "key": "db.system.name", "value": { "stringValue": "sqlite" }},
-                  { "key": "db.operation.name", "value": { "stringValue": "START TRANSACTION" }},
                   { "key": "code.function.name", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection::beginTransaction" }}
                 ],
                 "status":{}
@@ -427,7 +426,6 @@ final class TracingTest extends TestCase {
                 "kind": 3,
                 "attributes": [
                   { "key": "db.system.name", "value": { "stringValue": "sqlite" }},
-                  { "key": "db.operation.name", "value": { "stringValue": "COMMIT" }},
                   { "key": "code.function.name", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Connection::commit" }}
                 ],
                 "status":{}

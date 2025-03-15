@@ -91,48 +91,33 @@ final class TracingConnection implements Connection {
     }
 
     public function beginTransaction(): void {
-        static $attributes = [
-            'db.operation.name' => 'START TRANSACTION',
-        ];
-
         Util::trace(
             $this->tracer
-                ->spanBuilder(Util::resolveQuerySpanName($attributes))
+                ->spanBuilder('START TRANSACTION')
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
-                ->setAttributes($attributes)
                 ->startSpan(),
             $this->connection->beginTransaction(...),
         );
     }
 
     public function commit(): void {
-        static $attributes = [
-            'db.operation.name' => 'COMMIT',
-        ];
-
         Util::trace(
             $this->tracer
-                ->spanBuilder(Util::resolveQuerySpanName($attributes))
+                ->spanBuilder('COMMIT')
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
-                ->setAttributes($attributes)
                 ->startSpan(),
             $this->connection->commit(...),
         );
     }
 
     public function rollBack(): void {
-        static $attributes = [
-            'db.operation.name' => 'ROLLBACK',
-        ];
-
         Util::trace(
             $this->tracer
-                ->spanBuilder(Util::resolveQuerySpanName($attributes))
+                ->spanBuilder('ROLLBACK')
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
-                ->setAttributes($attributes)
                 ->startSpan(),
             $this->connection->rollBack(...),
         );

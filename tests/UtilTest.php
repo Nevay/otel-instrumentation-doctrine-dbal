@@ -40,15 +40,15 @@ final class UtilTest extends TestCase {
         ];
         yield [
             "START TRANSACTION",
-            'START TRANSACTION',
+            null,
         ];
         yield [
             "COMMIT",
-            'COMMIT',
+            null,
         ];
         yield [
             "ROLLBACK",
-            'ROLLBACK',
+            null,
         ];
         yield [
             "START TRANSACTION; INSERT INTO user VALUES ('abc'); COMMIT",

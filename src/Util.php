@@ -131,11 +131,8 @@ final class Util {
                 if ($s instanceof WithStatement) {
                     array_splice($statements, $i, 1);
                 }
-                if ($s instanceof TransactionStatement && $s->statements) {
-                    array_splice($statements, $i, 1, $s->statements);
-                }
-                if ($s instanceof TransactionStatement && !$s->statements && $s->end) {
-                    array_splice($statements, $i + 1, 0, $s->end);
+                if ($s instanceof TransactionStatement) {
+                    array_splice($statements, $i, 1, $s->statements ?? []);
                 }
             }
             foreach ($statements as $statement) {
