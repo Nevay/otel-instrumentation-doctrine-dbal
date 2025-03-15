@@ -93,7 +93,7 @@ final class TracingConnection implements Connection {
     public function beginTransaction(): void {
         Util::trace(
             $this->tracer
-                ->spanBuilder('START TRANSACTION')
+                ->spanBuilder('BEGIN TRANSACTION')
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
                 ->startSpan(),

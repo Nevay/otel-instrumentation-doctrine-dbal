@@ -392,7 +392,7 @@ final class TracingTest extends TestCase {
                 "parentSpanId": "b7ad6b7169203331",
                 "spanId": "ac0a7f8c2faac497",
                 "flags": 259,
-                "name": "START TRANSACTION",
+                "name": "BEGIN TRANSACTION",
                 "kind": 3,
                 "attributes": [
                   { "key": "db.system.name", "value": { "stringValue": "sqlite" }},
