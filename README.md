@@ -25,3 +25,11 @@ $connection = DriverManager::getConnection($params, $config);
 ### Automatic registration
 
 The tracing middleware is automatically injected if auto-instrumentation is enabled for the project.
+
+###### Disabling instrumentation via config file
+
+```yaml
+instrumentation:
+    php:
+        doctrine: false
+```
