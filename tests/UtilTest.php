@@ -109,5 +109,18 @@ final class UtilTest extends TestCase {
                 SQL,
             'SELECT "song list" \'artists\'',
         ];
+
+        yield [
+            <<<'SQL'
+                REPLACE INTO shipping_details
+                             (order_id,
+                             address)
+                SELECT order_id,
+                       address
+                FROM   orders
+                WHERE  order_id = ?
+                SQL,
+            'REPLACE shipping_details SELECT orders'
+        ];
     }
 }

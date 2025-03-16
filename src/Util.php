@@ -251,7 +251,7 @@ final class Util {
             }
         }
 
-        if ($statement instanceof InsertStatement && $statement->select) {
+        if (($statement instanceof InsertStatement || $statement instanceof ReplaceStatement) && $statement->select) {
             self::summarize($statement->select, $summary);
         }
 
