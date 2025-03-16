@@ -18,7 +18,7 @@ final class TracingConnection implements Connection {
     ) {}
 
     public function prepare(string $sql): Statement {
-        $attributes = Util::attributes($sql, !$this->config->captureParameters);
+        $attributes = Util::attributes($sql, false);
 
         $statement = Util::trace(
             $this->tracer
