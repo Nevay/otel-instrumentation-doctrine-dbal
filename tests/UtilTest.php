@@ -122,5 +122,29 @@ final class UtilTest extends TestCase {
                 SQL,
             'REPLACE shipping_details SELECT orders'
         ];
+        yield [
+            <<<'SQL'
+                CREATE VIEW test.v AS SELECT * FROM t
+                SQL,
+            'CREATE test.v'
+        ];
+        yield [
+            <<<'SQL'
+                CREATE TABLE test.t (id INT PRIMARY KEY)
+                SQL,
+            'CREATE test.t'
+        ];
+        yield [
+            <<<'SQL'
+                DROP VIEW test.v
+                SQL,
+            'DROP test.v'
+        ];
+        yield [
+            <<<'SQL'
+                DROP TABLE test.t
+                SQL,
+            'DROP test.t'
+        ];
     }
 }

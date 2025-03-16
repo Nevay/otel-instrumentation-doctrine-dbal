@@ -10,6 +10,7 @@ use PhpMyAdmin\SqlParser\Context;
 use PhpMyAdmin\SqlParser\Parser;
 use PhpMyAdmin\SqlParser\Statement;
 use PhpMyAdmin\SqlParser\Statements\AlterStatement;
+use PhpMyAdmin\SqlParser\Statements\CreateStatement;
 use PhpMyAdmin\SqlParser\Statements\DeleteStatement;
 use PhpMyAdmin\SqlParser\Statements\DropStatement;
 use PhpMyAdmin\SqlParser\Statements\InsertStatement;
@@ -216,12 +217,13 @@ final class Util {
         } elseif (($statement instanceof AlterStatement) || ($statement instanceof TruncateStatement)) {
             $expressions = [$statement->table];
         } elseif ($statement instanceof DropStatement) {
-            if (!$statement->options->has('TABLE')) {
-                // No tables are dropped.
-                return [];
+            if ($statement->options->has('TABLE') || $statement->options->has('VIEW')) {
+                $expressions = $statement->fields;
             }
-
-            $expressions = $statement->fields;
+        } elseif ($statement instanceof CreateStatement) {
+            if (($statement->options->has('TABLE') || $statement->options->has('VIEW')) && $statement->name) {
+                $expressions = [$statement->name];
+            }
         } elseif ($statement instanceof RenameStatement) {
             foreach ($statement->renames as $rename) {
                 $expressions[] = $rename->old;
