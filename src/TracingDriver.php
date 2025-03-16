@@ -65,13 +65,15 @@ final class TracingDriver implements Driver {
                 $span->setAttribute('db.system.name', $attributes['db.system.name'] = self::resolveDbSystem($this->driver->getDatabasePlatform($connection)));
             }
         } catch (Throwable $e) {
-            if ($e instanceof Exception) {
+            if ($e instanceof Exception && $e->getSQLState() !== null) {
                 $span->setAttribute('db.response.status_code', $e->getSQLState());
+                $span->setAttribute('error.type', $e->getSQLState());
+            } else {
+                $span->setAttribute('error.type', $e::class);
             }
 
             $span->setStatus(StatusCode::STATUS_ERROR, $e->getMessage());
-            $span->recordException($e, ['exception.escaped' => true]);
-            $span->setAttribute('error.type', $e::class);
+            $span->recordException($e);
 
             throw $e;
         } finally {
