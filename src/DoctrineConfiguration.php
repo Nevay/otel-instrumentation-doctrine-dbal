@@ -6,6 +6,7 @@ use OpenTelemetry\API\Instrumentation\AutoInstrumentation\InstrumentationConfigu
 final class DoctrineConfiguration implements InstrumentationConfiguration {
 
     public function __construct(
+        public readonly bool $enabled = true,
         public readonly bool $captureParameters = false,
     ) {}
 }

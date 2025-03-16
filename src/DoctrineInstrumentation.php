@@ -13,6 +13,10 @@ final class DoctrineInstrumentation implements Instrumentation {
 
     public function register(HookManagerInterface $hookManager, ConfigProperties $configuration, Context $context): void {
         $config = $configuration->get(DoctrineConfiguration::class) ?? new DoctrineConfiguration();
+        if (!$config->enabled) {
+            return;
+        }
+
         $middleware = new TracingMiddleware($context->tracerProvider, $config);
 
         $hookManager->hook(
