@@ -1,5 +1,8 @@
 {
     "name": "tbachert/otel-instrumentation-doctrine-dbal",
+    "description": "OpenTelemetry doctrine/dbal instrumentation",
+    "keywords": ["opentelemetry", "otel", "instrumentation"],
+    "license": "Apache-2.0",
     "require": {
         "php": "^8.2",
         "ext-mbstring": "*",
