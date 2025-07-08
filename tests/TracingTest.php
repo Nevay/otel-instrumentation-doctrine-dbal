@@ -266,8 +266,8 @@ final class TracingTest extends TestCase {
                   { "key": "db.operation.name", "value": { "stringValue": "SELECT" }},
                   { "key": "db.query.summary", "value": { "stringValue": "SELECT user" }},
                   { "key": "db.query.text", "value": { "stringValue": "select * from user where first_name = ? and last_name = ?" }},
-                  { "key": "db.operation.parameter.0", "value":  { "stringValue": "Jane" }},
-                  { "key": "db.operation.parameter.1", "value":  { "stringValue": "Doe" }},
+                  { "key": "db.query.parameter.0", "value":  { "stringValue": "Jane" }},
+                  { "key": "db.query.parameter.1", "value":  { "stringValue": "Doe" }},
                   { "key": "code.function.name", "value": { "stringValue": "Doctrine\\\\DBAL\\\\Driver\\\\SQLite3\\\\Statement::execute" }}
                 ],
                 "status":{}

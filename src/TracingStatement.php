@@ -21,7 +21,7 @@ final class TracingStatement implements Statement {
 
         if ($this->config->captureParameters) {
             $this->spanBuilder->setAttribute(
-                sprintf('db.operation.parameter.%s', is_int($param) ? $param - 1 : $param),
+                sprintf('db.query.parameter.%s', is_int($param) ? $param - 1 : $param),
                 match (gettype($value)) {
                     'NULL' => 'null',
                     'boolean' => $value ? 'true' : 'false',
