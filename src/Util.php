@@ -33,6 +33,7 @@ use function count;
 use function implode;
 use function mb_substr;
 use function sprintf;
+use function strlen;
 
 /**
  * @internal
@@ -205,7 +206,7 @@ final class Util {
     /**
      * @see Query::getTables()
      */
-    private static function summarize(Statement $statement, array &$summary = []): array {
+    private static function summarize(Statement $statement, array &$summary = [], int $summaryLength = 0): array {
         $expressions = [];
 
         if (($statement instanceof InsertStatement) || ($statement instanceof ReplaceStatement)) {
@@ -237,24 +238,32 @@ final class Util {
 
         $flags = Query::getFlags($statement);
         if ($flags->queryType) {
-            $summary[] = $flags->queryType->value;
+            $summaryLength += strlen($flags->queryType->value);
+
+            if ($summaryLength <= 255) {
+                $summary[] = $flags->queryType->value;
+            }
         }
 
         $tables = [];
         foreach ($expressions as $expr) {
             if ($expr->table !== null) {
                 $tables[] = $expr->expr;
-                $summary[] = $expr->expr;
+
+                $summaryLength += strlen($expr->expr);
+                if ($summaryLength <= 255) {
+                    $summary[] = $expr->expr;
+                }
             }
             if ($expr->subquery !== null) {
                 foreach ((new Parser($expr->expr))->statements as $statement) {
-                    self::summarize($statement, $summary);
+                    self::summarize($statement, $summary, $summaryLength);
                 }
             }
         }
 
         if (($statement instanceof InsertStatement || $statement instanceof ReplaceStatement) && $statement->select) {
-            self::summarize($statement->select, $summary);
+            self::summarize($statement->select, $summary, $summaryLength);
         }
 
         return $tables;
