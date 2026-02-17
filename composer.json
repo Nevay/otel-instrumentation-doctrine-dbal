@@ -26,7 +26,10 @@
     "autoload": {
         "psr-4": {
             "Nevay\\OTelInstrumentation\\DoctrineDbal\\": "src/"
-        }
+        },
+        "files": [
+            "_register.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
@@ -37,13 +40,8 @@
         "branch-alias": {
             "dev-main": "0.1.x-dev"
         },
-        "spi": {
-            "OpenTelemetry\\API\\Instrumentation\\AutoInstrumentation\\Instrumentation": [
-                "Nevay\\OTelInstrumentation\\DoctrineDbal\\DoctrineInstrumentation"
-            ],
-            "Nevay\\OTelSDK\\Configuration\\ComponentProvider": [
-                "Nevay\\OTelInstrumentation\\DoctrineDbal\\DoctrineInstrumentationProvider"
-            ]
+        "spi-config": {
+            "autoload-files": true
         }
     }
 }

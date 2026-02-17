@@ -4,6 +4,7 @@ namespace Nevay\OTelInstrumentation\DoctrineDbal;
 use Amp\ByteStream\WritableBuffer;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\DriverManager;
+use Nevay\OTelSDK\Common\Configurator\RuleConfiguratorBuilder;
 use Nevay\OTelSDK\Common\TestClock;
 use Nevay\OTelSDK\Otlp\OtlpStreamSpanExporter;
 use Nevay\OTelSDK\Trace\IdGenerator\RandomIdGenerator;
@@ -38,11 +39,11 @@ final class TracingTest extends TestCase {
     }
 
     public function testConnect(): void {
-        $tracerProvider = (new TracerProviderBuilder())
-            ->setClock(new TestClock())
+        $tracerProvider = TracerProviderBuilder::buildBase(clock: new TestClock());
+        (new TracerProviderBuilder())
             ->setIdGenerator(new RandomIdGenerator(new Randomizer(new Mt19937(0))))
             ->addSpanProcessor(new BatchSpanProcessor(new OtlpStreamSpanExporter($buffer = new WritableBuffer())))
-            ->build();
+            ->copyStateInto($tracerProvider, new \OpenTelemetry\API\Configuration\Context());
         $connection = DriverManager::getConnection(
             ['driver' => 'sqlite3', 'memory' => true],
             (new Configuration())->setMiddlewares([new TracingMiddleware($tracerProvider)]),
@@ -77,17 +78,19 @@ final class TracingTest extends TestCase {
 
     #[Depends('testConnect')]
     public function testPrepare(): void {
-        $tracerProvider = (new TracerProviderBuilder())
-            ->setClock(new TestClock())
+        $tracerProvider = TracerProviderBuilder::buildBase(clock: new TestClock());
+        ($builder = new TracerProviderBuilder())
             ->setIdGenerator(new RandomIdGenerator(new Randomizer(new Mt19937(0))))
             ->addSpanProcessor(new BatchSpanProcessor(new OtlpStreamSpanExporter($buffer = new WritableBuffer())))
-            ->build();
+            ->copyStateInto($tracerProvider, new \OpenTelemetry\API\Configuration\Context());
         $connection = DriverManager::getConnection(
             ['driver' => 'sqlite3', 'memory' => true],
             (new Configuration())->setMiddlewares([new TracingMiddleware($tracerProvider)]),
         );
 
-        $tracerProvider->updateConfigurator(static fn(TracerConfig $config) => $config->disabled = true);
+        $builder
+            ->setTracerConfigurator((new RuleConfiguratorBuilder())->withRule(static fn(TracerConfig $config) => $config->enabled = false)->toConfigurator())
+            ->copyStateInto($tracerProvider, new \OpenTelemetry\API\Configuration\Context());
         $connection->executeStatement(<<<SQL
             create table user (
                 id int primary key,
@@ -97,7 +100,9 @@ final class TracingTest extends TestCase {
             insert into user values (1, 'John', 'Doe');
             insert into user values (2, 'Jane', 'Doe');
             SQL);
-        $tracerProvider->updateConfigurator(static fn(TracerConfig $config) => $config->disabled = false);
+        $builder
+            ->setTracerConfigurator((new RuleConfiguratorBuilder())->withRule(static fn(TracerConfig $config) => $config->enabled = true)->toConfigurator())
+            ->copyStateInto($tracerProvider, new \OpenTelemetry\API\Configuration\Context());
 
         $statement = $connection->prepare('select * from user where first_name = ? and last_name = ?');
         $statement->bindValue(0, 'Jane');
@@ -152,17 +157,19 @@ final class TracingTest extends TestCase {
 
     #[Depends('testConnect')]
     public function testSanitize(): void {
-        $tracerProvider = (new TracerProviderBuilder())
-            ->setClock(new TestClock())
+        $tracerProvider = TracerProviderBuilder::buildBase(clock: new TestClock());
+        ($builder = new TracerProviderBuilder())
             ->setIdGenerator(new RandomIdGenerator(new Randomizer(new Mt19937(0))))
             ->addSpanProcessor(new BatchSpanProcessor(new OtlpStreamSpanExporter($buffer = new WritableBuffer())))
-            ->build();
+            ->copyStateInto($tracerProvider, new \OpenTelemetry\API\Configuration\Context());
         $connection = DriverManager::getConnection(
             ['driver' => 'sqlite3', 'memory' => true],
             (new Configuration())->setMiddlewares([new TracingMiddleware($tracerProvider)]),
         );
 
-        $tracerProvider->updateConfigurator(static fn(TracerConfig $config) => $config->disabled = true);
+        $builder
+            ->setTracerConfigurator((new RuleConfiguratorBuilder())->withRule(static fn(TracerConfig $config) => $config->enabled = false)->toConfigurator())
+            ->copyStateInto($tracerProvider, new \OpenTelemetry\API\Configuration\Context());
         $connection->executeStatement(<<<SQL
             create table user (
                 id int primary key,
@@ -172,7 +179,9 @@ final class TracingTest extends TestCase {
             insert into user values (1, 'John', 'Doe');
             insert into user values (2, 'Jane', 'Doe');
             SQL);
-        $tracerProvider->updateConfigurator(static fn(TracerConfig $config) => $config->disabled = false);
+        $builder
+            ->setTracerConfigurator((new RuleConfiguratorBuilder())->withRule(static fn(TracerConfig $config) => $config->enabled = true)->toConfigurator())
+            ->copyStateInto($tracerProvider, new \OpenTelemetry\API\Configuration\Context());
 
         $connection->executeQuery("select * from user where first_name = 'Jane' and last_name = 'Doe'");
 
@@ -207,17 +216,18 @@ final class TracingTest extends TestCase {
 
     #[Depends('testConnect')]
     public function testCaptureParameters(): void {
-        $tracerProvider = (new TracerProviderBuilder())
-            ->setClock(new TestClock())
+        $tracerProvider = TracerProviderBuilder::buildBase(clock: new TestClock());
+        ($builder = new TracerProviderBuilder())
             ->setIdGenerator(new RandomIdGenerator(new Randomizer(new Mt19937(0))))
             ->addSpanProcessor(new BatchSpanProcessor(new OtlpStreamSpanExporter($buffer = new WritableBuffer())))
-            ->build();
+            ->copyStateInto($tracerProvider, new \OpenTelemetry\API\Configuration\Context());
         $connection = DriverManager::getConnection(
             ['driver' => 'sqlite3', 'memory' => true],
             (new Configuration())->setMiddlewares([new TracingMiddleware($tracerProvider, new DoctrineConfiguration(captureParameters: true))]),
         );
 
-        $tracerProvider->updateConfigurator(static fn(TracerConfig $config) => $config->disabled = true);
+        $tracerProvider->configurator = (new RuleConfiguratorBuilder())->withRule(static fn(TracerConfig $config) => $config->enabled = false)->toConfigurator();
+        $tracerProvider->reload();
         $connection->executeStatement(<<<SQL
             create table user (
                 id int primary key,
@@ -225,7 +235,9 @@ final class TracingTest extends TestCase {
                 last_name varchar not null
             );
             SQL);
-        $tracerProvider->updateConfigurator(static fn(TracerConfig $config) => $config->disabled = false);
+        $builder
+            ->setTracerConfigurator((new RuleConfiguratorBuilder())->withRule(static fn(TracerConfig $config) => $config->enabled = true)->toConfigurator())
+            ->copyStateInto($tracerProvider, new \OpenTelemetry\API\Configuration\Context());
 
         $connection->executeQuery("select * from user where first_name = ? and last_name = ?", ['Jane', 'Doe']);
         $connection->executeQuery("select * from user where first_name = 'Jane' and last_name = 'Doe'");
@@ -297,17 +309,19 @@ final class TracingTest extends TestCase {
 
     #[Depends('testConnect')]
     public function testBatch(): void {
-        $tracerProvider = (new TracerProviderBuilder())
-            ->setClock(new TestClock())
+        $tracerProvider = TracerProviderBuilder::buildBase(clock: new TestClock());
+        ($builder = new TracerProviderBuilder())
             ->setIdGenerator(new RandomIdGenerator(new Randomizer(new Mt19937(0))))
             ->addSpanProcessor(new BatchSpanProcessor(new OtlpStreamSpanExporter($buffer = new WritableBuffer())))
-            ->build();
+            ->copyStateInto($tracerProvider, new \OpenTelemetry\API\Configuration\Context());
         $connection = DriverManager::getConnection(
             ['driver' => 'sqlite3', 'memory' => true],
             (new Configuration())->setMiddlewares([new TracingMiddleware($tracerProvider)]),
         );
 
-        $tracerProvider->updateConfigurator(static fn(TracerConfig $config) => $config->disabled = true);
+        $builder
+            ->setTracerConfigurator((new RuleConfiguratorBuilder())->withRule(static fn(TracerConfig $config) => $config->enabled = false)->toConfigurator())
+            ->copyStateInto($tracerProvider, new \OpenTelemetry\API\Configuration\Context());
         $connection->executeStatement(<<<SQL
             create table user (
                 id int primary key,
@@ -315,7 +329,9 @@ final class TracingTest extends TestCase {
                 last_name varchar not null
             );
             SQL);
-        $tracerProvider->updateConfigurator(static fn(TracerConfig $config) => $config->disabled = false);
+        $builder
+            ->setTracerConfigurator((new RuleConfiguratorBuilder())->withRule(static fn(TracerConfig $config) => $config->enabled = true)->toConfigurator())
+            ->copyStateInto($tracerProvider, new \OpenTelemetry\API\Configuration\Context());
 
         $connection->executeQuery(<<<SQL
             insert into user values (1, 'John', 'Doe');
@@ -355,17 +371,19 @@ final class TracingTest extends TestCase {
     #[Depends('testConnect')]
     #[Depends('testSanitize')]
     public function testTransactionCommit(): void {
-        $tracerProvider = (new TracerProviderBuilder())
-            ->setClock(new TestClock())
+        $tracerProvider = TracerProviderBuilder::buildBase(clock: new TestClock());
+        ($builder = new TracerProviderBuilder())
             ->setIdGenerator(new RandomIdGenerator(new Randomizer(new Mt19937(0))))
             ->addSpanProcessor(new BatchSpanProcessor(new OtlpStreamSpanExporter($buffer = new WritableBuffer())))
-            ->build();
+            ->copyStateInto($tracerProvider, new \OpenTelemetry\API\Configuration\Context());
         $connection = DriverManager::getConnection(
             ['driver' => 'sqlite3', 'memory' => true],
             (new Configuration())->setMiddlewares([new TracingMiddleware($tracerProvider)]),
         );
 
-        $tracerProvider->updateConfigurator(static fn(TracerConfig $config) => $config->disabled = true);
+        $builder
+            ->setTracerConfigurator((new RuleConfiguratorBuilder())->withRule(static fn(TracerConfig $config) => $config->enabled = false)->toConfigurator())
+            ->copyStateInto($tracerProvider, new \OpenTelemetry\API\Configuration\Context());
         $connection->executeStatement(<<<SQL
             create table user (
                 id int primary key,
@@ -375,7 +393,9 @@ final class TracingTest extends TestCase {
             insert into user values (1, 'John', 'Doe');
             insert into user values (2, 'Jane', 'Doe');
             SQL);
-        $tracerProvider->updateConfigurator(static fn(TracerConfig $config) => $config->disabled = false);
+        $builder
+            ->setTracerConfigurator((new RuleConfiguratorBuilder())->withRule(static fn(TracerConfig $config) => $config->enabled = true)->toConfigurator())
+            ->copyStateInto($tracerProvider, new \OpenTelemetry\API\Configuration\Context());
 
         $connection->beginTransaction();
         $connection->executeQuery("select * from user where first_name = 'Jane' and last_name = 'Doe'");

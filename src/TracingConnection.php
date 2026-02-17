@@ -1,5 +1,4 @@
-<?php
-
+<?php declare(strict_types=1);
 namespace Nevay\OTelInstrumentation\DoctrineDbal;
 
 use Doctrine\DBAL\Driver\Connection;
@@ -34,7 +33,7 @@ final class TracingConnection implements Connection {
         return new TracingStatement(
             $statement,
             $this->tracer
-                ->spanBuilder(Util::resolveQuerySpanName(($attributes)))
+                ->spanBuilder(Util::resolveQuerySpanName($attributes))
                 ->setSpanKind(SpanKind::KIND_CLIENT)
                 ->setAttributes($this->connectionAttributes)
                 ->setAttributes($attributes),
